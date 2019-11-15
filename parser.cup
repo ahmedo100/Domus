@@ -1,0 +1,8 @@
+prog ::= list 
+        |
+        ;
+liste ::= elt liste 
+        | elt 
+        ;
+elt   ::= BAL_DEB_PROG {: System.out.println("Debut programme !"); :} 
+        |
