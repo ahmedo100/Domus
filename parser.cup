@@ -2,8 +2,6 @@ import java.io.*;
 import java_cup.runtime.*;
 import java.util.HashMap;
 parser code {:
-   //Done parsing(); brutally leave 
-
    public static void main(String args[]) throws Exception {
       new parser(new Yylex(new InputStreamReader(System.in))).parse();
    }
@@ -21,8 +19,6 @@ parser code {:
    public void unrecovered_syntax_error(Symbol cur_token){
       System.out.println("ERR "+currentToken()+ " line = "+pline() + "column " + pcol());
    }   
-   HashMap<String,Object> symTable = new HashMap<String,Object>();
-
    public int pline(){
       return ((Yylex)getScanner()).getYyLine();
    }
@@ -34,7 +30,8 @@ parser code {:
    }
 :}
 action code{:
-    
+    HashMap<String,Object> symTable  = new HashMap<String,Object>();
+    String codeToBeGenerated ="";
 :}
 
 terminal BALISEDEBPROG,BALISEFINPROG,BALISEDEBDECLAPP,BALISEFINDECLAPP;
@@ -58,7 +55,7 @@ prog ::= liste {::}
 
         ;
 liste ::= BALISEDEBPROG declApp declInterface declScenarii declCommande BALISEFINPROG {:  :};
-declApp ::= BALISEDEBDECLAPP  instrDecl    BALISEFINDECLAPP
+declApp ::= BALISEDEBDECLAPP  instrDecl    BALISEFINDECLAPP {:  :}
                 |
                 |error declApp
                 ;

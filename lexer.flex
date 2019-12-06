@@ -15,6 +15,8 @@ import java_cup.runtime.Symbol;
 
 %unicode
 %cup
+%line
+%column
 ident = [a-zA-Z][a-zA-Z_0-9]*
 baliseDebProg = "<PROGRAMME_DOMUS>"
 baliseFinProg = "</PROGRAMME_DOMUS>"
@@ -113,6 +115,6 @@ interfaces ="interrupteur" | "mobile" | "telephone" | "telecommande" | "tablette
 {programmer} {return new Symbol(sym.PROGRAMMER);}
 {ident}  {   return new Symbol(sym.IDENT,yytext());}
 {antiS} {}
-[ \t] {yycolumn++;}
-[\n]  {yyline++; yycolumn=0; }
+[ \t] {}
+[\n]  { }
 . {yycolumn++;System.out.println("Erreur lexical= "+ yytext()+" non reconnu ligne:" + (++yyline) +" Col : "+ (++yycolumn)+"\n" );}
