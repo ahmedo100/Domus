@@ -1,8 +1,134 @@
-prog ::= list 
+import java.io.*;
+import java_cup.runtime.*;
+import java.util.HashMap;
+parser code {:
+   //Done parsing(); brutally leave 
+
+   public static void main(String args[]) throws Exception {
+      new parser(new Yylex(new InputStreamReader(System.in))).parse();
+   }
+   public void syntax_error(Symbol cur_token){
+            System.out.println("ERR "+currentToken()+ " line = "+pline() + "column " + pcol());
+
+   }
+   public void report_fatal_error(String message , Object info){
+      System.out.println("ERR "+currentToken()+ " line = "+pline() + "column " + pcol());
+   }
+   public void report_error(String message , Object info){
+      System.out.println("ERR "+currentToken()+ " line = "+pline() + "column " + pcol());
+
+   }
+   public void unrecovered_syntax_error(Symbol cur_token){
+      System.out.println("ERR "+currentToken()+ " line = "+pline() + "column " + pcol());
+   }   
+   HashMap<String,Object> symTable = new HashMap<String,Object>();
+
+   public int pline(){
+      return ((Yylex)getScanner()).getYyLine();
+   }
+   public int pcol(){
+      return ((Yylex)getScanner()).getYyColumn();
+   }
+   public String currentToken(){
+      return ((Yylex)getScanner()).getYyText();
+   }
+:}
+action code{:
+    
+:}
+
+terminal BALISEDEBPROG,BALISEFINPROG,BALISEDEBDECLAPP,BALISEFINDECLAPP;
+terminal BALISEDEBDECLINTERF,BALISEFINDECLINTERF,BALISEDEBDECLSCENARII;
+terminal BALISEFINDECLSCENARII,BALISEDECLSCENARIO,BALISEFINSCENARIO;
+terminal BALISEDEBDECLCOMMANDE,BALISEFINDECLCOMMANDE;
+terminal VIRG,POINT,DP,PVIRG,ACCOUV,EG,ACCCFERM,PAROUV,PARFERM,DOUBLEEG,POURTOUT,FAIRE;
+terminal FAIT,PLUGR,SI,ALORS,SINON,FSI,UNDERSCORE,MESSAGE,DEFINIR,MCETAT,AUTREAPPAREIL,PROGRAMMER,EXECUTERSCENARIO,ASSOCIER;
+terminal Integer ENTIER;
+terminal String TYPEAPP,ETAT,ACTION,TYPEAUTREAPP,INTERFACE,CHAINE,IDENT;
+non terminal prog ,mess,act , liste , S;
+non terminal declApp,listeScenar, declInterface ;
+non terminal instrScenario,declScenarii ,declCommande ;
+non terminal instrDecl , listeIdent , instrInterf;
+non terminal boucle , cond , condition,sep,chaineMessage,condBoucle,instr;
+non terminal assocRes , instrComm,listeNbr,nbr,var;
+start with prog;
+prog ::= liste {::}
         |
+        |error prog
+
         ;
-liste ::= elt liste 
-        | elt 
-        ;
-elt   ::= BAL_DEB_PROG {: System.out.println("Debut programme !"); :} 
-        |
+liste ::= BALISEDEBPROG declApp declInterface declScenarii declCommande BALISEFINPROG {:  :};
+declApp ::= BALISEDEBDECLAPP  instrDecl    BALISEFINDECLAPP
+                |
+                |error declApp
+                ;
+
+instrDecl ::= TYPEAPP listeIdent POINT instrDecl
+             |AUTREAPPAREIL PAROUV TYPEAUTREAPP PARFERM listeIdent POINT instrDecl
+             |DEFINIR IDENT EG ACCOUV listeIdent ACCCFERM POINT instrDecl
+             | {:  :}
+             ;
+listeIdent ::= IDENT S listeIdent 
+              |
+              ;
+S ::= VIRG | ;
+declInterface ::= BALISEDEBDECLINTERF instrInterf BALISEFINDECLINTERF  ;
+instrInterf   ::= INTERFACE listeIdent POINT instrInterf  
+                  | 
+                  |error instrInterf
+                  ;
+declScenarii  ::= BALISEDEBDECLSCENARII listeScenar BALISEFINDECLSCENARII 
+                  |
+                  |error declScenarii
+                   ;
+listeScenar   ::= BALISEDECLSCENARIO IDENT PLUGR instrScenario BALISEFINSCENARIO IDENT PLUGR listeScenar 
+                  | 
+                  |error listeScenar
+                  ;
+instrScenario ::=  instr 
+                  | EXECUTERSCENARIO IDENT PVIRG instrScenario
+                  |
+                  | error instrScenario
+                  ;
+condBoucle ::=  IDENT DP TYPEAPP
+               |IDENT DP IDENT
+               |IDENT DP AUTREAPPAREIL PAROUV TYPEAUTREAPP PARFERM
+               |IDENT DP AUTREAPPAREIL 
+               ;
+condition ::= SI  cond   ALORS instr  FSI PVIRG
+            | SI cond ALORS instr SINON instr FSI  PVIRG;
+instr ::= act instrScenario
+         |mess instrScenario
+         |boucle instrScenario
+         |condition instrScenario
+         ;
+cond ::= PAROUV IDENT POINT MCETAT DOUBLEEG ETAT PARFERM;
+mess ::= MESSAGE PAROUV chaineMessage PARFERM PVIRG;
+act  ::= IDENT POINT ACTION PVIRG;
+boucle ::= POURTOUT condBoucle FAIRE instr FAIT PVIRG;
+
+chaineMessage ::= CHAINE:val sep chaineMessage 
+                  |IDENT sep  chaineMessage
+                  |IDENT POINT MCETAT sep  chaineMessage  {:/* Verifier dans la semantique que sep n'est pas un epsilon au debut*/:}
+                  |
+                  |error chaineMessage
+                  ;
+
+sep ::=  VIRG sep 
+         |
+         ;
+declCommande ::= BALISEDEBDECLCOMMANDE instrComm BALISEFINDECLCOMMANDE;
+instrComm ::= ASSOCIER IDENT EG assocRes  instrComm
+            | PROGRAMMER IDENT EG nbr POINT instrComm
+            | PROGRAMMER IDENT EG ACCOUV listeNbr ACCCFERM POINT instrComm
+            |
+            ;
+listeNbr ::=  nbr S listeNbr 
+             |
+             ;
+nbr     ::= PAROUV var VIRG var VIRG var VIRG var VIRG var PARFERM;
+var ::= ENTIER | UNDERSCORE ;
+assocRes ::= IDENT POINT 
+            | ACCOUV listeIdent ACCCFERM  POINT
+            |
+            ;
