@@ -105,7 +105,7 @@ interfaces ="interrupteur" | "mobile" | "telephone" | "telecommande" | "tablette
 {message} {return new Symbol(sym.MESSAGE);}
 {definir} { return new Symbol(sym.DEFINIR);}
 {mcEtat} {return new Symbol(sym.MCETAT);}
-{typeApp} {  return new Symbol(  sym.TYPEAPP,yytext());}
+{typeApp} {  return new Symbol(sym.TYPEAPP,yytext());}
 {etats} {return new Symbol(sym.ETAT,yytext());}
 {actions} {  return new Symbol(sym.ACTION,yytext());}
 {typeAutreApp} {return new Symbol(sym.TYPEAUTREAPP,yytext());}

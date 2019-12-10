@@ -13,7 +13,7 @@
 	definir mon_eclairage_salon = {e1,e2}.
 </DECLARATION_APPAREILS>
 
-// déclaration des interfaces
+// dï¿½claration des interfaces
 <DECLARATION_INTERFACES>
    	interrupteur b1,b2,b3.
 	mobile t1.
@@ -35,7 +35,6 @@
 	<SCENARIO bonjour2>
 		pourtout v:volet faire v.ouvrir; fait;
 		e1.eteindre;
-		pourtout e:autre_appareil faire e.allumer; fait;
 	</SCENARIO bonjour2>
 
 	<SCENARIO soiree>

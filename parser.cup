@@ -1,9 +1,91 @@
 import java.io.*;
 import java_cup.runtime.*;
-import java.util.HashMap;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
+import java.util.HashSet;
+import java.io.FileWriter;
 parser code {:
+//TODO regler MEssage , rani deja bditha , derniere haja dertha c'est modifyit act li kodam message 
+//TODO le principe li rani nkhdm fih c'est la réduction de toutes les instructions des scenario apres 
+//je produit le code au moment de reduction.. //// Must be done avant le 13
    public static void main(String args[]) throws Exception {
       new parser(new Yylex(new InputStreamReader(System.in))).parse();
+      //debut de génération de code
+      //str à écrire dans le fichier a généré...
+      String genc = "public class CMaisonUser extends CMaison {\n public CMaisonUser() {\n super();\n";
+      for(Appareil app :listAppareilSymTable){
+            switch(app.type){
+            case NORMALTYPE : {
+               String currType = getCurrType(app.typeMc);
+               String[] splitType = currType.split(";");
+               genc +=splitType[0]+" "+app.varName +" = new " +splitType[0]+"(\""+app.varName+"\","+splitType[1]+");\n"; 
+               genc +="ma_liste_appareils.add("+app.varName+");\n";
+               break;
+            }
+            case AUTRETYPE : {
+               String currType = getCurrType(app.typeMc);
+               genc +="CAutreAppareil "+app.varName +" = new CAutreAppareil(\""+app.varName+"\","+currType+");\n"; 
+               genc +="ma_liste_appareils.add("+app.varName+");\n";
+               break;
+            }
+            case INTERTYPE : {
+               String currType = getCurrType(app.typeMc);
+               genc +="CInterface "+app.varName +" = new CInterface(\""+app.varName+"\","+currType+");\n"; 
+               genc +="ma_liste_interfaces.add("+app.varName+");\n";
+               break;
+            }
+         }
+      }
+      
+      // code pour générer les définitions ..
+      genc+= "// Ensembles d'appareils\n";
+
+      for(Appareil defApp :listAppareilDefSymTable){
+         genc+="CEnsAppareil "+defApp.varName +" = new CEnsAppareil(\""+defApp.varName+"\");\n";
+         for(String varName : defApp.defTypeListApp){
+            genc+=defApp.varName+".addAppareil("+varName+");\n";
+         }
+         genc+="ma_liste_ens_appareils.add("+defApp.varName+");\n";
+      }
+      
+
+       try{    
+           FileWriter fw = new FileWriter(new File("genc.java"));  
+           fw.write(genc);    
+           fw.close();    
+          }catch(Exception e){System.out.println(e);}    
+          System.out.println("Success...");    
+     
+
+   }
+
+   public static String getCurrType(String type){
+      String currType ="";
+         switch(type){
+            case "eclairage":  currType = "CEclairage;TypeAppareil.ECLAIRAGE"; break;
+            case "chauffage":  currType = "CChauffage;TypeAppareil.CHAUFFAGE"; break;
+            case "fenetre":    currType = "CVoletFenetre;TypeAppareil.FENETRE"; break;
+            case "volet":      currType = "CVoletFenetre;TypeAppareil.VOLET"; break;
+            case "alarme":     currType = "CAlarme;TypeAppareil.ALARME"; break;
+            case"tv":          currType = "TypeAppareil.AUTRE_APPAREIL_TV"; break;
+            case "hifi":       currType = "TypeAppareil.AUTRE_APPAREIL_HIFI"; break;
+            case "cafetiere":  currType = "TypeAppareil.AUTRE_APPAREIL_CAFE"; break;
+            case "video_proj": currType = "TypeAppareil.AUTRE_APPAREIL_VP"; break;
+            case "lave_linge": currType = "TypeAppareil.AUTRE_APPAREIL_LL"; break;
+            case "lave_vaisselle": currType = "TypeAppareil.AUTRE_APPAREIL_LV"; break;
+            case "seche_linge": currType = "TypeAppareil.AUTRE_APPAREIL_SL"; break;
+            case "portail":     currType = "TypeAppareil.AUTRE_APPAREIL_PORTAIL"; break;
+            case "interrupteur": currType ="TypeInterface.INTERRUPTEUR"; break;
+            case "mobile": currType ="TypeInterface.MOBILE"; break;
+            case "telephone": currType ="TypeInterface.TELEPHONE"; break;
+            case "telecommande": currType ="TypeInterface.TELECOMMANDE"; break;
+            case "tablette": currType ="TypeInterface.TABLETTE"; break;
+            case "ordinateur": currType ="TypeInterface.ORDINATEUR"; break;
+            default : currType =type;
+         }
+
+         return currType;
    }
    public void syntax_error(Symbol cur_token){
             System.out.println("ERR "+currentToken()+ " line = "+pline() + "column " + pcol());
@@ -28,10 +110,44 @@ parser code {:
    public String currentToken(){
       return ((Yylex)getScanner()).getYyText();
    }
+   static List<Appareil> listAppareilSymTable  = new ArrayList<Appareil>();
+   static List<Appareil> listAppareilDefSymTable = new ArrayList<Appareil>();
+   static List<String> identListDef = new ArrayList <String>();
+   static List<String> identList = new ArrayList <String>();
+   static List<String> identListAutreType = new ArrayList <String>();
+   static String scenValue ="";
+   
+
+
 :}
 action code{:
-    HashMap<String,Object> symTable  = new HashMap<String,Object>();
-    String codeToBeGenerated ="";
+   public void insertIntoSymTable(DeclAppType declType,String type,List<String> strList){
+         for(int i =0;i<strList.size();i++){
+               String id = strList.get(i);
+               parser.listAppareilSymTable.add(new Appareil(declType,id,type));
+               strList.remove(i);
+               }
+   }
+
+   public String createScenarioActions(String id,String action,Boolean isLoop){
+      String inst = "for(CAppareil appareil : this.l_appareils)\n ";
+      String metToBeCalled ="";
+      if(isLoop){
+         metToBeCalled = "typeAppareil";
+      }else{
+         metToBeCalled = "getNomAppareil()";
+      }
+      String[] currentType = parser.getCurrType(action).split(";");
+      if(currentType.length >  2){
+         inst+= "appareil."+metToBeCalled+".equals(\""+id+"\")) appareil.appliquer("+currentType[1]+");\n";
+      }else
+         if(currentType[0].equals(action))
+            inst+="appareil."+metToBeCalled+".equals(\""+id+"\"))"+action+";\n";
+         else
+            inst+="appareil."+metToBeCalled+".equals(\""+id+"\")) appareil.appliquer("+currentType[0]+");\n";
+
+      return inst;
+   }
 :}
 
 terminal BALISEDEBPROG,BALISEFINPROG,BALISEDEBDECLAPP,BALISEFINDECLAPP;
@@ -39,15 +155,17 @@ terminal BALISEDEBDECLINTERF,BALISEFINDECLINTERF,BALISEDEBDECLSCENARII;
 terminal BALISEFINDECLSCENARII,BALISEDECLSCENARIO,BALISEFINSCENARIO;
 terminal BALISEDEBDECLCOMMANDE,BALISEFINDECLCOMMANDE;
 terminal VIRG,POINT,DP,PVIRG,ACCOUV,EG,ACCCFERM,PAROUV,PARFERM,DOUBLEEG,POURTOUT,FAIRE;
-terminal FAIT,PLUGR,SI,ALORS,SINON,FSI,UNDERSCORE,MESSAGE,DEFINIR,MCETAT,AUTREAPPAREIL,PROGRAMMER,EXECUTERSCENARIO,ASSOCIER;
+terminal FAIT,PLUGR,SI,ALORS,SINON,FSI,UNDERSCORE,MESSAGE,DEFINIR;
+terminal MCETAT,AUTREAPPAREIL,PROGRAMMER,EXECUTERSCENARIO,ASSOCIER;
 terminal Integer ENTIER;
 terminal String TYPEAPP,ETAT,ACTION,TYPEAUTREAPP,INTERFACE,CHAINE,IDENT;
 non terminal prog ,mess,act , liste , S;
 non terminal declApp,listeScenar, declInterface ;
 non terminal instrScenario,declScenarii ,declCommande ;
-non terminal instrDecl , listeIdent , instrInterf;
+non terminal instrDecl  , instrInterf;
+non terminal List<Appareil> listeIdent;
 non terminal boucle , cond , condition,sep,chaineMessage,condBoucle,instr;
-non terminal assocRes , instrComm,listeNbr,nbr,var;
+non terminal assocRes , instrComm,listeNbr,nbr,var,listeIdentTypeApp,listeIdentDef,listeIdentAutreType;
 start with prog;
 prog ::= liste {::}
         |
@@ -55,59 +173,67 @@ prog ::= liste {::}
 
         ;
 liste ::= BALISEDEBPROG declApp declInterface declScenarii declCommande BALISEFINPROG {:  :};
-declApp ::= BALISEDEBDECLAPP  instrDecl    BALISEFINDECLAPP {:  :}
+declApp ::= BALISEDEBDECLAPP  instrDecl    BALISEFINDECLAPP {: :}
                 |
                 |error declApp
                 ;
 
-instrDecl ::= TYPEAPP listeIdent POINT instrDecl
-             |AUTREAPPAREIL PAROUV TYPEAUTREAPP PARFERM listeIdent POINT instrDecl
-             |DEFINIR IDENT EG ACCOUV listeIdent ACCCFERM POINT instrDecl
-             | {:  :}
+instrDecl ::= 
+             |TYPEAPP:type listeIdent POINT instrDecl {: insertIntoSymTable(DeclAppType.NORMALTYPE,type,parser.identList);:}
+             |AUTREAPPAREIL PAROUV TYPEAUTREAPP:type PARFERM listeIdentAutreType POINT instrDecl {: insertIntoSymTable(DeclAppType.AUTRETYPE,type,parser.identListAutreType);:}
+             |DEFINIR IDENT:id EG ACCOUV listeIdentDef ACCCFERM POINT instrDecl {:  parser.listAppareilDefSymTable.add(new Appareil(DeclAppType.DEFTYPE,id,parser.identListDef));:}
              ;
-listeIdent ::= IDENT S listeIdent 
-              |
-              ;
+listeIdent ::= IDENT:idVal S listeIdent {: parser.identList.add(idVal); :}
+              |IDENT:idVal {:parser.identList.add(idVal);:}
+               ;
+listeIdentAutreType ::= IDENT:idVal S listeIdent {: parser.identListAutreType.add(idVal); :}
+                        |IDENT:idVal {:parser.identListAutreType.add(idVal);:}
+                        ;
+listeIdentDef ::=  IDENT:idVal S listeIdentDef {:  parser.identListDef.add(idVal);:}
+                  |IDENT:idVal {:  parser.identListDef.add(idVal);:}
+                  ;
+
 S ::= VIRG | ;
 declInterface ::= BALISEDEBDECLINTERF instrInterf BALISEFINDECLINTERF  ;
-instrInterf   ::= INTERFACE listeIdent POINT instrInterf  
+instrInterf   ::= INTERFACE:type listeIdent POINT instrInterf  {:insertIntoSymTable(DeclAppType.INTERTYPE,type,parser.identList);:}
                   | 
                   |error instrInterf
                   ;
 declScenarii  ::= BALISEDEBDECLSCENARII listeScenar BALISEFINDECLSCENARII 
                   |
                   |error declScenarii
-                   ;
-listeScenar   ::= BALISEDECLSCENARIO IDENT PLUGR instrScenario BALISEFINSCENARIO IDENT PLUGR listeScenar 
+                  ;
+listeScenar   ::= BALISEDECLSCENARIO IDENT PLUGR instrScenario:val BALISEFINSCENARIO IDENT PLUGR listeScenar  {: System.out.println(val); :}
                   | 
                   |error listeScenar
                   ;
-instrScenario ::=  instr 
+instrScenario ::=  instr:val  {: RESULT = val;:}
                   | EXECUTERSCENARIO IDENT PVIRG instrScenario
                   |
                   | error instrScenario
                   ;
-condBoucle ::=  IDENT DP TYPEAPP
-               |IDENT DP IDENT
-               |IDENT DP AUTREAPPAREIL PAROUV TYPEAUTREAPP PARFERM
-               |IDENT DP AUTREAPPAREIL 
+condBoucle ::=  IDENT DP TYPEAPP:type {:RESULT = type;:}
+               |IDENT DP IDENT:id2 {:RESULT = id2;:}
+               |IDENT DP AUTREAPPAREIL PAROUV TYPEAUTREAPP:typeAutreApp PARFERM {: RESULT = typeAutreApp; :}
+               |IDENT DP AUTREAPPAREIL {:RESULT = "autre_appareil";:}
                ;
 condition ::= SI  cond   ALORS instr  FSI PVIRG
             | SI cond ALORS instr SINON instr FSI  PVIRG;
-instr ::= act instrScenario
-         |mess instrScenario
-         |boucle instrScenario
-         |condition instrScenario
+instr ::= act:act instrScenario {:RESULT = act; :}
+         |mess:mess instrScenario{:RESULT = mess;:}
+         |boucle:boucle instrScenario{:RESULT = boucle;:}
+         |condition:condition instrScenario {:RESULT = condition;:}
          ;
 cond ::= PAROUV IDENT POINT MCETAT DOUBLEEG ETAT PARFERM;
-mess ::= MESSAGE PAROUV chaineMessage PARFERM PVIRG;
-act  ::= IDENT POINT ACTION PVIRG;
-boucle ::= POURTOUT condBoucle FAIRE instr FAIT PVIRG;
 
-chaineMessage ::= CHAINE:val sep chaineMessage 
-                  |IDENT sep  chaineMessage
-                  |IDENT POINT MCETAT sep  chaineMessage  {:/* Verifier dans la semantique que sep n'est pas un epsilon au debut*/:}
-                  |
+mess ::= MESSAGE PAROUV chaineMessage:chaineVal PARFERM PVIRG {:RESULT = "System.out.println(\"Affichage console :  \")"+chaineVal+";";:};
+act  ::= IDENT:id POINT ACTION:action PVIRG {:RESULT = createScenarioActions(id,action,false);:};
+boucle ::= POURTOUT condBoucle:valCond FAIRE instr:inst FAIT PVIRG {:RESULT = createScenarioActions((String)valCond,(String)inst,true);:};
+
+chaineMessage ::= CHAINE:val sep chaineMessage:valCh  {:RESULT = val + valCh; :}
+                  |IDENT:val sep  chaineMessage:valCh  {:RESULT = val + valCh; :}
+                  |IDENT POINT MCETAT sep  chaineMessage:valCh  {:RESULT = "Etat" +valCh;:}
+                  | {:RESULT = "";:}
                   |error chaineMessage
                   ;
 

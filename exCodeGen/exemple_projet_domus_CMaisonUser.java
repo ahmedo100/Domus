@@ -87,12 +87,12 @@ public class CMaisonUser extends CMaison {
 	"for(CAppareil appareil : this.l_appareils)\n     " +
 	"     if (appareil.estTypeAutreAppareil()) appareil.appliquer(TypeActionAppareil.ETEINDRE);\n     " +
         "for(CAppareil appareil : this.l_appareils)\n     " +
-        "   if (appareil.getNomAppareil().equals(\"fen\"))\n     " +
+        "   if (appareil.getNomAppareil().equals(\"fen\"))\n     " + 
         "      if (appareil.etatAppareil.equals(TypeEtatAppareil.FERME))\n     " +
         "         { for(CAppareil appareil2 : this.l_appareils)\n     " +
         "              if (appareil2.getNomAppareil().equals(\"a1\"))\n     " +
         "                 appareil2.appliquer(TypeActionAppareil.ALLUMER); }\n     " +
-        "              else System.out.println(\"Affichage console : Attention la fenêtre \"+appareil.getNomAppareil()+\" est ouverte !\");";
+        "              else System.out.println(\"Affichage console : Attention la fenï¿½tre \"+appareil.getNomAppareil()+\" est ouverte !\");";
     CScenario depart = new CScenario("depart",depart_contenu); 
     ma_liste_scenarios.add(depart);
     
