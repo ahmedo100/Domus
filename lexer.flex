@@ -52,7 +52,7 @@ si="si"
 alors="alors"
 sinon ="sinon"
 fsi ="fsi"
-entier = [0-9]+
+entier = -*[0-9]+
 underscore = "_"
 message="message"
 autre_appareil = "autre_appareil"
@@ -101,7 +101,7 @@ interfaces ="interrupteur" | "mobile" | "telephone" | "telecommande" | "tablette
 {sinon} {return new Symbol(sym.SINON);}
 {fsi} {return new Symbol(sym.FSI);}
 {entier} {return new Symbol(sym.ENTIER,new Integer(yytext()));}
-{underscore} {return new Symbol(sym.UNDERSCORE);}
+{underscore} {return new Symbol(sym.UNDERSCORE,"_");}
 {message} {return new Symbol(sym.MESSAGE);}
 {definir} { return new Symbol(sym.DEFINIR);}
 {mcEtat} {return new Symbol(sym.MCETAT);}
@@ -110,7 +110,7 @@ interfaces ="interrupteur" | "mobile" | "telephone" | "telecommande" | "tablette
 {actions} {  return new Symbol(sym.ACTION,yytext());}
 {typeAutreApp} {return new Symbol(sym.TYPEAUTREAPP,yytext());}
 {interfaces} {return new Symbol(sym.INTERFACE,yytext());}
-{chaine} {return new Symbol(sym.CHAINE , yytext());}
+{chaine} {return new Symbol(sym.CHAINE , yytext().substring(1,yytext().length()-1));}
 {executerScen} {return new Symbol(sym.EXECUTERSCENARIO);}
 {programmer} {return new Symbol(sym.PROGRAMMER);}
 {ident}  {   return new Symbol(sym.IDENT,yytext());}

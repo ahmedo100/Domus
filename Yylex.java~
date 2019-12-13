@@ -1022,7 +1022,7 @@ class Yylex implements java_cup.runtime.Scanner {
             }
           case 51: break;
           case 4: 
-            { return new Symbol(sym.UNDERSCORE);
+            { return new Symbol(sym.UNDERSCORE,"_");
             }
           case 52: break;
           case 5: 
@@ -1082,7 +1082,7 @@ class Yylex implements java_cup.runtime.Scanner {
             }
           case 66: break;
           case 19: 
-            { return new Symbol(sym.CHAINE , yytext());
+            { return new Symbol(sym.CHAINE , yytext().substring(1,yytext().length()-1));
             }
           case 67: break;
           case 20: 
@@ -1114,7 +1114,7 @@ class Yylex implements java_cup.runtime.Scanner {
             }
           case 74: break;
           case 27: 
-            { return new Symbol(  sym.TYPEAPP,yytext());
+            { return new Symbol(sym.TYPEAPP,yytext());
             }
           case 75: break;
           case 28: 

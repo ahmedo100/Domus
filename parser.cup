@@ -4,6 +4,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.HashSet;
+import java.util.HashMap;
+import java.util.Map;
 import java.io.FileWriter;
 parser code {:
 //TODO regler MEssage , rani deja bditha , derniere haja dertha c'est modifyit act li kodam message 
@@ -14,6 +16,18 @@ parser code {:
       //debut de génération de code
       //str à écrire dans le fichier a généré...
       String genc = "public class CMaisonUser extends CMaison {\n public CMaisonUser() {\n super();\n";
+      String fich2 ="// HabitatSpecific.java\nimport java.util.ArrayList;\npublic class HabitatSpecific extends Habitat {\npublic HabitatSpecific(ArrayList<CAppareil> lapp, ArrayList<CEnsAppareil> lens, ArrayList<CScenario> lscen, ArrayList<CInterface> lint, ArrayList<CProgrammation> lprog)\n{\n	super(lapp,lens,lscen,lint,lprog);\n}\n";
+      fich2+="public void execScenarioNum(int num){\n";
+      fich2+="System.out.println( \"Execution du scenario \"+this.l_scenarios.get(num).getNomScenario()+\"... \");\n\n";
+      fich2+="     switch(num) {\n";
+      for(String str :parser.scenarioSymTable.keySet()){
+         System.out.println("work");
+            fich2+="case "+parser.scenarioId.get(str)+ ": \n";
+            fich2+=parser.scenarioSymTable.get(str).replace("\\\"","\"")+"\n";
+            fich2+="break;\n";
+      }
+
+      fich2+="default:\n }\n  } \n}";
       for(Appareil app :listAppareilSymTable){
             switch(app.type){
             case NORMALTYPE : {
@@ -49,9 +63,15 @@ parser code {:
          genc+="ma_liste_ens_appareils.add("+defApp.varName+");\n";
       }
       
-
+         genc+=scenValue;
+         genc+=commValue;
+         genc+="monHabitat = new HabitatSpecific(ma_liste_appareils,ma_liste_ens_appareils, ma_liste_scenarios,ma_liste_interfaces, ma_liste_programmations);";
+         genc+="\n} \n }";
        try{    
-           FileWriter fw = new FileWriter(new File("genc.java"));  
+           FileWriter fw = new FileWriter(new File("CMaisonUser.java"));  
+           FileWriter fw2 = new FileWriter(new File("HabitatSpecific.java"));
+           fw2.write(fich2);
+           fw2.close();
            fw.write(genc);    
            fw.close();    
           }catch(Exception e){System.out.println(e);}    
@@ -68,7 +88,7 @@ parser code {:
             case "fenetre":    currType = "CVoletFenetre;TypeAppareil.FENETRE"; break;
             case "volet":      currType = "CVoletFenetre;TypeAppareil.VOLET"; break;
             case "alarme":     currType = "CAlarme;TypeAppareil.ALARME"; break;
-            case"tv":          currType = "TypeAppareil.AUTRE_APPAREIL_TV"; break;
+            case "tv":          currType = "TypeAppareil.AUTRE_APPAREIL_TV"; break;
             case "hifi":       currType = "TypeAppareil.AUTRE_APPAREIL_HIFI"; break;
             case "cafetiere":  currType = "TypeAppareil.AUTRE_APPAREIL_CAFE"; break;
             case "video_proj": currType = "TypeAppareil.AUTRE_APPAREIL_VP"; break;
@@ -86,6 +106,37 @@ parser code {:
          }
 
          return currType;
+   }
+
+   public static String getCurrentEtat(String etat){
+      String currEtat ="";
+      switch(etat){
+         case "allume": currEtat ="TypeEtatAppareil.ALLUME"; break;
+         case "eteint": currEtat ="TypeEtatAppareil.ETEINT"; break;
+         case "demi"  :	currEtat ="TypeEtatAppareil.DEMI"; break;	 
+         case "eco"   : currEtat ="TypeEtatAppareil.ECO"; break;
+         case "ouvert": currEtat ="TypeEtatAppareil.OUVERT"; break;
+         case "ferme" : currEtat ="TypeEtatAppareil.FERME"; break;
+      }
+
+      return currEtat;
+   }
+
+   public static String getCurrentAction(String action){
+      String currAction ="";
+      switch(action){
+         case "allumer": currAction ="TypeActionAppareil.ALLUMER"; break;
+         case "ouvrir": currAction ="TypeActionAppareil.ETEINDRE"; break;
+         case "fermer"  :	currAction ="TypeActionAppareil.TAMISER"; break;	 
+         case "eteindre"   : currAction ="TypeActionAppareil.ALLUMER_PARTIEL"; break;
+         case "allumer_partiel": currAction ="TypeActionAppareil.ALLUMER_ECO"; break;
+         case "tamiser" : currAction ="TypeActionAppareil.OUVRIR"; break;
+         case "allumer_eco"   : currAction ="TypeActionAppareil.FERMER"; break;
+         case "fermer_partiel": currAction ="TypeActionAppareil.OUVRIR_PARTIEL"; break;
+         case "ouvrir_partiel" : currAction ="TypeActionAppareil.FERMER_PARTIEL"; break;
+      }
+
+      return currAction;
    }
    public void syntax_error(Symbol cur_token){
             System.out.println("ERR "+currentToken()+ " line = "+pline() + "column " + pcol());
@@ -115,12 +166,13 @@ parser code {:
    static List<String> identListDef = new ArrayList <String>();
    static List<String> identList = new ArrayList <String>();
    static List<String> identListAutreType = new ArrayList <String>();
+   static Map<String,String> scenarioSymTable = new HashMap();
+   static Map<String,Integer> scenarioId = new HashMap();
    static String scenValue ="";
-   
-
-
+   static String commValue ="";   
 :}
 action code{:
+   int scenarioCount = 0;
    public void insertIntoSymTable(DeclAppType declType,String type,List<String> strList){
          for(int i =0;i<strList.size();i++){
                String id = strList.get(i);
@@ -129,24 +181,105 @@ action code{:
                }
    }
 
-   public String createScenarioActions(String id,String action,Boolean isLoop){
-      String inst = "for(CAppareil appareil : this.l_appareils)\n ";
+   public String createScenarioActions(String id,String action,boolean isLoop,boolean isCond){         
+      String inst = "for(CAppareil appareil : this.l_appareils) ";
       String metToBeCalled ="";
       if(isLoop){
          metToBeCalled = "typeAppareil";
       }else{
          metToBeCalled = "getNomAppareil()";
       }
-      String[] currentType = parser.getCurrType(action).split(";");
-      if(currentType.length >  2){
-         inst+= "appareil."+metToBeCalled+".equals(\""+id+"\")) appareil.appliquer("+currentType[1]+");\n";
-      }else
-         if(currentType[0].equals(action))
-            inst+="appareil."+metToBeCalled+".equals(\""+id+"\"))"+action+";\n";
-         else
-            inst+="appareil."+metToBeCalled+".equals(\""+id+"\")) appareil.appliquer("+currentType[0]+");\n";
-
+      if(isCond){
+         inst+= " if (appareil.getNomAppareil().equals(\\\""+id+"\\\"))";
+         String etat = parser.getCurrentEtat(action);
+         inst+= "if (appareil.etatAppareil.equals("+etat+"))    ";
+      }else {
+         if(action.contains("CAppareil") || action.contains("System")){
+            inst+=action;
+         }else {
+            if(isLoop){
+               String[] currentType = parser.getCurrType(id).split(";");
+               String type ="";
+               if(currentType.length > 1)
+                  type =currentType[1];
+               else type= currentType[0];
+                  inst+="if (appareil."+metToBeCalled+".equals("+type+")) appareil.appliquer("+parser.getCurrentAction(action)+");";
+            }
+            else
+               inst+="if (appareil."+metToBeCalled+".equals(\\\""+id+"\\\")) appareil.appliquer("+parser.getCurrentAction(action)+");";
+         }
+      
+      }
+      
       return inst;
+   }
+
+   public String createScenario(String ident,String content){
+      String scenarioContent ="String "+ident+"_contenu  = \""+content+"\";\n";
+      String scenarioDecl = "CScenario "+ident+ "= new CScenario(\""+ident+"\","+ident+"_contenu);\nma_liste_scenarios.add("+ident+");\n";
+      parser.scenarioSymTable.put(ident,content);
+      return scenarioContent + scenarioDecl;
+   }
+   public String createExecute(Integer scenarioCount){
+      return  "  this.execScenarioNum("+scenarioCount+"); ";
+   }
+   public String assocScenario(String id , List<String> list){
+      String assoc="";
+      for(String nomScenario : list )
+         assoc += "    \n "+id+".addScenarioAssocie(\""+nomScenario+"\");\n";
+      return assoc;
+   }
+
+   public String createProgramString(int nbProg,String nomScenario,List<Integer[]> listDate){
+         String var = "p"+nbProg;
+         String prog ="CProgrammation "+var+" = new CProgrammation(\""+nomScenario+"\");\n";
+         int count =1;
+         for(Integer[] date : listDate){
+            String pdate = "d"+count;
+            String d = "CDate "+var+pdate+" = new CDate(";
+            String dateStr ="";
+            for(int nb :date)
+               dateStr+=nb+",";
+            dateStr = dateStr.substring(0,dateStr.length()-1);
+            d += dateStr+");\n";
+            prog+= d;
+            prog+=var+".addDate("+var+pdate+");\n";
+         }
+
+         prog+= "ma_liste_programmations("+var+");\n";
+         return prog;
+   }
+   int nbProg =0;
+   public boolean checkInSymTable(String id){
+      boolean inSym = false;
+      for(Appareil app :parser.listAppareilSymTable ){
+         if(app.varName.equals(id)){
+            inSym = true;
+            break;
+         }
+      }
+         return inSym || parser.identListDef.contains(id) || parser.identList.contains(id) ||  parser.identListAutreType.contains(id);
+   }
+
+   boolean isDeclPhase = true;
+
+   public boolean checkDate(int year , int month , int day ,int heure , int minute){
+      int yearLength = String.valueOf(year).length();      
+      if ((yearLength == 4 || year == -1 ) && ((month>=1 && month < 12) || month == -1) && ((day > 0 && day <=31) || day == -1 ) && ((heure >= 1 && heure <= 23 ) || heure == -1) && ((minute >=0 && minute <= 59) || minute == -1)){
+            return false;
+      }
+      return true;
+   }
+
+   boolean checkInSym(String id){
+      boolean inSym = false;
+      for(Appareil app :parser.listAppareilSymTable){
+         if(app.varName.equals(id)){
+            inSym = true;
+            break;
+         }
+      }
+      return inSym;
    }
 :}
 
@@ -160,12 +293,15 @@ terminal MCETAT,AUTREAPPAREIL,PROGRAMMER,EXECUTERSCENARIO,ASSOCIER;
 terminal Integer ENTIER;
 terminal String TYPEAPP,ETAT,ACTION,TYPEAUTREAPP,INTERFACE,CHAINE,IDENT;
 non terminal prog ,mess,act , liste , S;
-non terminal declApp,listeScenar, declInterface ;
-non terminal instrScenario,declScenarii ,declCommande ;
-non terminal instrDecl  , instrInterf;
-non terminal List<Appareil> listeIdent;
-non terminal boucle , cond , condition,sep,chaineMessage,condBoucle,instr;
-non terminal assocRes , instrComm,listeNbr,nbr,var,listeIdentTypeApp,listeIdentDef,listeIdentAutreType;
+non terminal String declApp,listeScenar, declInterface ;
+non terminal String instrScenario,declScenarii ,declCommande ;
+non terminal String instrDecl  , instrInterf;
+non terminal List<String> listeIdent , assocRes;
+non terminal String boucle , cond , condition,sep,chaineMessage,condBoucle,instr;
+non terminal List<Integer[]> listeNbr;
+non terminal Integer[] nbr;
+non terminal instrComm,listeIdentTypeApp,listeIdentDef,listeIdentAutreType;
+non terminal Integer var;
 start with prog;
 prog ::= liste {::}
         |
@@ -180,21 +316,21 @@ declApp ::= BALISEDEBDECLAPP  instrDecl    BALISEFINDECLAPP {: :}
 
 instrDecl ::= 
              |TYPEAPP:type listeIdent POINT instrDecl {: insertIntoSymTable(DeclAppType.NORMALTYPE,type,parser.identList);:}
-             |AUTREAPPAREIL PAROUV TYPEAUTREAPP:type PARFERM listeIdentAutreType POINT instrDecl {: insertIntoSymTable(DeclAppType.AUTRETYPE,type,parser.identListAutreType);:}
+             |AUTREAPPAREIL PAROUV TYPEAUTREAPP:type PARFERM listeIdentAutreType POINT instrDecl {:  insertIntoSymTable(DeclAppType.AUTRETYPE,type,parser.identListAutreType);:}
              |DEFINIR IDENT:id EG ACCOUV listeIdentDef ACCCFERM POINT instrDecl {:  parser.listAppareilDefSymTable.add(new Appareil(DeclAppType.DEFTYPE,id,parser.identListDef));:}
              ;
-listeIdent ::= IDENT:idVal S listeIdent {: parser.identList.add(idVal); :}
-              |IDENT:idVal {:parser.identList.add(idVal);:}
+listeIdent ::= IDENT:idVal S listeIdent:l {: if(isDeclPhase &&checkInSymTable(idVal)) throw new VariableAlreadyDeclaredException(idVal); parser.identList.add(idVal); l.add(idVal); RESULT =l; :}
+              |IDENT:idVal {:  if(isDeclPhase && checkInSymTable(idVal)) throw new VariableAlreadyDeclaredException(idVal); parser.identList.add(idVal); List<String> ll = new ArrayList(); ll.add(idVal); RESULT = ll;:}
                ;
-listeIdentAutreType ::= IDENT:idVal S listeIdent {: parser.identListAutreType.add(idVal); :}
-                        |IDENT:idVal {:parser.identListAutreType.add(idVal);:}
+listeIdentAutreType ::= IDENT:idVal S listeIdentAutreType {: if(isDeclPhase &&checkInSymTable(idVal)) throw new VariableAlreadyDeclaredException(idVal); parser.identListAutreType.add(idVal); :}
+                        |IDENT:idVal {: if(isDeclPhase && checkInSymTable(idVal)) throw new VariableAlreadyDeclaredException(idVal); parser.identListAutreType.add(idVal);:}
                         ;
-listeIdentDef ::=  IDENT:idVal S listeIdentDef {:  parser.identListDef.add(idVal);:}
+listeIdentDef ::=  IDENT:idVal S listeIdentDef {:   parser.identListDef.add(idVal);:}
                   |IDENT:idVal {:  parser.identListDef.add(idVal);:}
                   ;
 
 S ::= VIRG | ;
-declInterface ::= BALISEDEBDECLINTERF instrInterf BALISEFINDECLINTERF  ;
+declInterface ::= BALISEDEBDECLINTERF instrInterf BALISEFINDECLINTERF;
 instrInterf   ::= INTERFACE:type listeIdent POINT instrInterf  {:insertIntoSymTable(DeclAppType.INTERTYPE,type,parser.identList);:}
                   | 
                   |error instrInterf
@@ -203,36 +339,35 @@ declScenarii  ::= BALISEDEBDECLSCENARII listeScenar BALISEFINDECLSCENARII
                   |
                   |error declScenarii
                   ;
-listeScenar   ::= BALISEDECLSCENARIO IDENT PLUGR instrScenario:val BALISEFINSCENARIO IDENT PLUGR listeScenar  {: System.out.println(val); :}
-                  | 
+listeScenar   ::=  BALISEDECLSCENARIO IDENT:id {:parser.scenarioId.put(id,parser.scenarioId.size());:} PLUGR instrScenario:val BALISEFINSCENARIO IDENT PLUGR listeScenar  {:  parser.scenValue+=createScenario(id,(String)val); :}
+                  | {: RESULT ="";:}
                   |error listeScenar
                   ;
-instrScenario ::=  instr:val  {: RESULT = val;:}
-                  | EXECUTERSCENARIO IDENT PVIRG instrScenario
-                  |
+instrScenario ::=  instr:val   {: RESULT = val;:}
+                  | {:RESULT ="";:}
                   | error instrScenario
                   ;
 condBoucle ::=  IDENT DP TYPEAPP:type {:RESULT = type;:}
                |IDENT DP IDENT:id2 {:RESULT = id2;:}
-               |IDENT DP AUTREAPPAREIL PAROUV TYPEAUTREAPP:typeAutreApp PARFERM {: RESULT = typeAutreApp; :}
+               |IDENT DP AUTREAPPAREIL PAROUV TYPEAUTREAPP:typeAutreApp PARFERM {:RESULT = typeAutreApp;:}
                |IDENT DP AUTREAPPAREIL {:RESULT = "autre_appareil";:}
                ;
-condition ::= SI  cond   ALORS instr  FSI PVIRG
-            | SI cond ALORS instr SINON instr FSI  PVIRG;
-instr ::= act:act instrScenario {:RESULT = act; :}
-         |mess:mess instrScenario{:RESULT = mess;:}
-         |boucle:boucle instrScenario{:RESULT = boucle;:}
-         |condition:condition instrScenario {:RESULT = condition;:}
+condition ::= SI  cond:val   ALORS instr:i1  FSI PVIRG {: String[] tmp = ((String)(val)).split(";"); RESULT = createScenarioActions(tmp[0],tmp[1],false,true)+"{"+i1+"}"; :}
+            | SI cond:val ALORS instr:i1 SINON instr:i2 FSI  PVIRG{: String[] tmp = ((String)(val)).split(";"); RESULT = createScenarioActions(tmp[0],tmp[1],false,true) + "{"+i1+"}"+"else{"+i2+"}"; :};
+instr ::= act:act instrScenario:is {   :RESULT = act+ is; :}
+         |mess:mess instrScenario:is {:RESULT = mess+is;:}
+         |boucle:boucle instrScenario:is {:RESULT = boucle + is;:}
+         |condition:condition instrScenario:is {:RESULT = condition + is;:}
+         |EXECUTERSCENARIO IDENT:id PVIRG instrScenario:ins {: RESULT = createExecute(parser.scenarioId.get(id)) +ins; :}
          ;
-cond ::= PAROUV IDENT POINT MCETAT DOUBLEEG ETAT PARFERM;
+cond ::= PAROUV IDENT:id POINT MCETAT DOUBLEEG ETAT:et PARFERM {:RESULT = id+";"+et;:};
+mess ::= MESSAGE PAROUV chaineMessage:chaineVal PARFERM PVIRG {: chaineVal = ((String)(chaineVal)).replace("\"",""); RESULT = "System.out.println(\\\"Affichage console :"+chaineVal+" \\\");";:};
+act  ::= IDENT:id POINT ACTION:action PVIRG {:  RESULT = createScenarioActions(id,action,false,false);:};
+boucle ::= POURTOUT condBoucle:valCond FAIRE instr:inst FAIT PVIRG {:RESULT = createScenarioActions((String)valCond,(String)inst,true,false);:};
 
-mess ::= MESSAGE PAROUV chaineMessage:chaineVal PARFERM PVIRG {:RESULT = "System.out.println(\"Affichage console :  \")"+chaineVal+";";:};
-act  ::= IDENT:id POINT ACTION:action PVIRG {:RESULT = createScenarioActions(id,action,false);:};
-boucle ::= POURTOUT condBoucle:valCond FAIRE instr:inst FAIT PVIRG {:RESULT = createScenarioActions((String)valCond,(String)inst,true);:};
-
-chaineMessage ::= CHAINE:val sep chaineMessage:valCh  {:RESULT = val + valCh; :}
-                  |IDENT:val sep  chaineMessage:valCh  {:RESULT = val + valCh; :}
-                  |IDENT POINT MCETAT sep  chaineMessage:valCh  {:RESULT = "Etat" +valCh;:}
+chaineMessage ::= CHAINE:val sep chaineMessage:valCh  {:RESULT = val+" "+valCh; :}
+                  |IDENT:val sep  chaineMessage:valCh  {:RESULT = val+" "+valCh; :}
+                  |IDENT POINT MCETAT sep  chaineMessage:valCh  {:RESULT = "Etat"+valCh;:}
                   | {:RESULT = "";:}
                   |error chaineMessage
                   ;
@@ -240,18 +375,18 @@ chaineMessage ::= CHAINE:val sep chaineMessage:valCh  {:RESULT = val + valCh; :}
 sep ::=  VIRG sep 
          |
          ;
-declCommande ::= BALISEDEBDECLCOMMANDE instrComm BALISEFINDECLCOMMANDE;
-instrComm ::= ASSOCIER IDENT EG assocRes  instrComm
-            | PROGRAMMER IDENT EG nbr POINT instrComm
-            | PROGRAMMER IDENT EG ACCOUV listeNbr ACCCFERM POINT instrComm
-            |
+declCommande ::= {:isDeclPhase = false;:} BALISEDEBDECLCOMMANDE instrComm:ic BALISEFINDECLCOMMANDE {:parser.commValue+=ic;:};
+instrComm ::= ASSOCIER IDENT:id EG assocRes:res  instrComm:ic {: RESULT= assocScenario(id,res)+ ic ;:}
+            |PROGRAMMER IDENT:id EG listeNbr:nb POINT instrComm:next {: String str= createProgramString(++nbProg,id,nb); RESULT = str+ next; :}
+            |PROGRAMMER IDENT:id EG ACCOUV listeNbr:nb ACCCFERM POINT instrComm:next {:String str= createProgramString(++nbProg,id,nb); RESULT = str+ next; :}
+            |{:RESULT ="";:}
             ;
-listeNbr ::=  nbr S listeNbr 
-             |
+listeNbr ::=  nbr:nb S listeNbr:ll {: ll.add(nb); RESULT = ll; System.out.println(ll);:} 
+             | nbr:nb {:List<Integer[]> ll = new ArrayList<Integer[]>(); ll.add(nb); RESULT = ll; :}
              ;
-nbr     ::= PAROUV var VIRG var VIRG var VIRG var VIRG var PARFERM;
-var ::= ENTIER | UNDERSCORE ;
-assocRes ::= IDENT POINT 
-            | ACCOUV listeIdent ACCCFERM  POINT
+nbr     ::= PAROUV var:var1 VIRG var:var2 VIRG var:var3 VIRG var:var4 VIRG var:var5 PARFERM {: if(checkDate(var1,var2,var3,var4,var5)) throw new WrongDateFormatException("");   Integer[] nbArr = {var1,var2,var3,var4,var5}; RESULT=nbArr; :};
+var ::= ENTIER:val {:RESULT = new Integer(val);:} | UNDERSCORE {:RESULT = new Integer(-1);:} ;
+assocRes ::= IDENT:id POINT  {:List<String> ll = new ArrayList(); ll.add(id); RESULT = ll;:}
+            | ACCOUV listeIdent:ll ACCCFERM POINT {:RESULT = ll;:}
             |
             ;

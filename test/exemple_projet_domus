@@ -10,11 +10,11 @@
     autre_appareil(cafetiere) cafe.
     autre_appareil(hifi) hf.
     
-    // déclaration d'un ensemble d'appareils (type énumeré utilisateur)
+    // dï¿½claration d'un ensemble d'appareils (type ï¿½numerï¿½ utilisateur)
     definir mon_eclairage_salon = {e2,e3}.
 </DECLARATION_APPAREILS>
 
-// déclaration des interfaces
+// dï¿½claration des interfaces
 <DECLARATION_INTERFACES>
     interrupteur b1, b2.
     mobile t1.
@@ -43,7 +43,7 @@
 	</SCENARIO soiree_musique>
 
 	<SCENARIO depart>
-		message("Scenario Départ");
+		message("Scenario Depart");
 		pourtout v:volet faire v.fermer; fait;
 		pourtout e:eclairage faire e.eteindre; fait;
 		pourtout x:autre_appareil faire x.eteindre; fait;
@@ -53,6 +53,7 @@
 
  	<SCENARIO noel1>
         		 e1.allumer;
+				 executer_scenario soiree;
  	</SCENARIO noel1>
    
  	<SCENARIO noel2>
